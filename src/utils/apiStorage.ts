@@ -1,5 +1,6 @@
 import { DrinkEntry } from '../types';
 
+// API Configuration - supports both Azure Web App and Static Web App
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://alcohol-tracker-hxbkd9d6bng5apgt.swedencentral-01.azurewebsites.net/api';
 
 // Helper function for API calls

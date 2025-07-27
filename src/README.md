@@ -47,15 +47,20 @@ Denna app låter dig spåra din alkoholkonsumtion genom att registrera drycker m
    Backend API:et är publicerat på Azure och körs på:
    `https://alcohol-tracker-hxbkd9d6bng5apgt.swedencentral-01.azurewebsites.net`
 
-3. **Starta frontend:**
+3. **Frontend (Azure Static Web App):**
+   Frontend är publicerad på Azure Static Web App:
+   `https://gray-bay-09e10e803.2.azurestaticapps.net`
+   
+   För lokal utveckling:
    ```bash
    npm install
    npm start
    ```
-   Frontend körs på `http://localhost:3000`
+   Lokal frontend körs på `http://localhost:3000`
 
 4. **Öppna appen:**
-   - Gå till `http://localhost:3000` i din webbläsare
+   - Produktion: Gå till `https://gray-bay-09e10e803.2.azurestaticapps.net`
+   - Utveckling: Gå till `http://localhost:3000` i din webbläsare
    - Swagger API docs finns på `https://alcohol-tracker-hxbkd9d6bng5apgt.swedencentral-01.azurewebsites.net/swagger`
 
 ## 📁 Projektstruktur
