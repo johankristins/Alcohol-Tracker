@@ -43,13 +43,9 @@ Denna app låter dig spåra din alkoholkonsumtion genom att registrera drycker m
    cd alcohol-tracker
    ```
 
-2. **Starta backend:**
-   ```bash
-   cd backend/AlcoholTracker.API
-   dotnet restore
-   dotnet run
-   ```
-   Backend körs på `http://localhost:5000`
+2. **Backend (Azure):**
+   Backend API:et är publicerat på Azure och körs på:
+   `https://alcohol-tracker-hxbkd9d6bng5apgt.swedencentral-01.azurewebsites.net`
 
 3. **Starta frontend:**
    ```bash
@@ -60,7 +56,7 @@ Denna app låter dig spåra din alkoholkonsumtion genom att registrera drycker m
 
 4. **Öppna appen:**
    - Gå till `http://localhost:3000` i din webbläsare
-   - Swagger API docs finns på `http://localhost:5000/swagger`
+   - Swagger API docs finns på `https://alcohol-tracker-hxbkd9d6bng5apgt.swedencentral-01.azurewebsites.net/swagger`
 
 ## 📁 Projektstruktur
 

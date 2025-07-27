@@ -1,6 +1,6 @@
 import { DrinkEntry } from '../types';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://alcohol-tracker-hxbkd9d6bng5apgt.swedencentral-01.azurewebsites.net/api';
 
 // Helper function for API calls
 async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
