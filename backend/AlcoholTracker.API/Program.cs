@@ -16,7 +16,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowReactApp",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000")
+            policy.WithOrigins(
+                    "http://localhost:3000",
+                    "https://gray-bay-09e10e803.2.azurestaticapps.net"
+                )
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
