@@ -48,7 +48,7 @@ export const AddDrinkForm: React.FC<AddDrinkFormProps> = ({ onAddDrink }) => {
       notes: notes.trim() || undefined
     };
 
-    const createdEntry = await onAddDrink(entry);
+    await onAddDrink(entry);
     
     // Reset form
     setName('');
@@ -67,7 +67,7 @@ export const AddDrinkForm: React.FC<AddDrinkFormProps> = ({ onAddDrink }) => {
       timestamp: new Date()
     };
 
-    const createdEntry = await onAddDrink(entry);
+    await onAddDrink(entry);
   };
 
   return (
