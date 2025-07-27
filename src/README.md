@@ -53,7 +53,6 @@ Denna app låter dig spåra din alkoholkonsumtion genom att registrera drycker m
 
 3. **Starta frontend:**
    ```bash
-   cd frontend
    npm install
    npm start
    ```
@@ -67,22 +66,20 @@ Denna app låter dig spåra din alkoholkonsumtion genom att registrera drycker m
 
 ```
 alcohol-tracker/
-├── frontend/                 # React frontend
-│   ├── src/
-│   │   ├── components/      # React komponenter
-│   │   ├── types/          # TypeScript interfaces
-│   │   ├── utils/          # Utilities och API calls
-│   │   └── App.tsx         # Huvudkomponent
-│   ├── package.json
-│   └── README.md
-├── backend/                  # .NET backend
+├── src/                    # React frontend
+│   ├── components/         # React komponenter
+│   ├── types/             # TypeScript interfaces
+│   ├── utils/             # Utilities och API calls
+│   └── App.tsx            # Huvudkomponent
+├── backend/                # .NET backend
 │   └── AlcoholTracker.API/
-│       ├── Controllers/     # API controllers
-│       ├── Models/          # Entity Framework models
-│       ├── DTOs/           # Data Transfer Objects
-│       ├── Services/       # Business logic
-│       ├── Data/           # DbContext
-│       └── Program.cs      # App configuration
+│       ├── Controllers/    # API controllers
+│       ├── Models/         # Entity Framework models
+│       ├── DTOs/          # Data Transfer Objects
+│       ├── Services/      # Business logic
+│       ├── Data/          # DbContext
+│       └── Program.cs     # App configuration
+├── package.json
 ├── .gitignore
 └── README.md
 ```
@@ -124,7 +121,6 @@ SQLite-databasen skapas automatiskt som `AlcoholTracker.db` i backend-mappen.
 
 ### Frontend utveckling
 ```bash
-cd frontend
 npm start          # Starta utvecklingsserver
 npm test           # Kör tester
 npm run build      # Bygg för produktion
@@ -149,7 +145,6 @@ dotnet ef database update
 
 ### Frontend tester
 ```bash
-cd frontend
 npm test
 ```
 
@@ -163,7 +158,6 @@ dotnet test
 
 ### Frontend (React)
 ```bash
-cd frontend
 npm run build
 # Deploya build/ mappen till din hosting
 ```
@@ -200,4 +194,4 @@ Denna app är endast för personlig användning och ska inte ersätta profession
 
 ---
 
-**Utvecklad med ❤️ för att hjälpa dig spåra din alkoholkonsumtion på ett enkelt och smidigt sätt.**
+**Utvecklad med ❤️ för att hjälpa dig spåra din alkoholkonsumtion på ett enkelt och smidigt sätt.** 
