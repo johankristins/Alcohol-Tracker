@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Drink, DrinkEntry } from '../types';
 import { createDrink } from '../utils/calculations';
+import { BarcodeScanner } from './BarcodeScanner';
 
 interface AddDrinkFormProps {
   onAddDrink: (entry: DrinkEntry) => Promise<DrinkEntry>;
@@ -30,6 +31,7 @@ export const AddDrinkForm: React.FC<AddDrinkFormProps> = ({ onAddDrink }) => {
   const [alcoholPercentage, setAlcoholPercentage] = useState('');
   const [notes, setNotes] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,10 +72,34 @@ export const AddDrinkForm: React.FC<AddDrinkFormProps> = ({ onAddDrink }) => {
     await onAddDrink(entry);
   };
 
+  const handleDrinkFromBarcode = async (drink: Drink) => {
+    const newDrink = createDrink(drink.name, drink.type, drink.volume, drink.alcoholPercentage);
+    
+    const entry: DrinkEntry = {
+      id: '', // Will be set by backend
+      drink: newDrink,
+      timestamp: new Date()
+    };
+
+    await onAddDrink(entry);
+    setShowBarcodeScanner(false);
+  };
+
   return (
     <div className="add-drink-form">
       <h2>Lägg till dryck</h2>
       
+      {/* Barcode scanner button */}
+      <div className="barcode-section">
+        <button
+          type="button"
+          className="barcode-btn"
+          onClick={() => setShowBarcodeScanner(true)}
+        >
+          📱 Skanna streckkod
+        </button>
+      </div>
+
       {/* Quick add buttons */}
       <div className="quick-add-section">
         <h3>Snabblägg till</h3>
@@ -183,6 +209,18 @@ export const AddDrinkForm: React.FC<AddDrinkFormProps> = ({ onAddDrink }) => {
             Lägg till dryck
           </button>
         </form>
+      )}
+
+      {/* Barcode Scanner Modal */}
+      {showBarcodeScanner && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <BarcodeScanner
+              onDrinkFound={handleDrinkFromBarcode}
+              onCancel={() => setShowBarcodeScanner(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
