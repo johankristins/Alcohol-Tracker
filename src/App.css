@@ -1019,3 +1019,134 @@ td {
     height: 75px;
   }
 }
+
+/* Search functionality styles */
+.search-input {
+  margin-bottom: 1rem;
+}
+
+.search-results {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 1rem;
+}
+
+.search-results h4 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.result-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.result-item:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+.result-image {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: white;
+  padding: 2px;
+}
+
+.result-info {
+  flex: 1;
+}
+
+.result-name {
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+}
+
+.result-details {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.result-country {
+  font-size: 0.8rem;
+  color: #007bff;
+}
+
+/* Product info enhancements */
+.product-image {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.product-image img {
+  max-width: 120px;
+  max-height: 120px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: white;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-details p {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+.product-details p strong {
+  color: #2c3e50;
+  display: inline-block;
+  min-width: 120px;
+}
+
+/* Tab improvements */
+.scanner-tabs {
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  padding: 0.75rem 1rem;
+  border: 2px solid #dee2e6;
+  background: white;
+  color: #6c757d;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-right: 0.5rem;
+}
+
+.tab-btn:last-child {
+  margin-right: 0;
+}
+
+.tab-btn.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.tab-btn:hover:not(.active) {
+  background: #f8f9fa;
+  border-color: #007bff;
+  color: #007bff;
+}

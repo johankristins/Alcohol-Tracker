@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using AlcoholTracker.API.Data;
+using AlcoholTracker.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,12 @@ builder.Services.AddCors(options =>
 // Add Entity Framework with SQLite
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Add HttpClient for Systembolaget service
+builder.Services.AddHttpClient<ISystembolagetService, SystembolagetService>();
+
+// Register Systembolaget service
+builder.Services.AddScoped<ISystembolagetService, SystembolagetService>();
 
 var app = builder.Build();
 

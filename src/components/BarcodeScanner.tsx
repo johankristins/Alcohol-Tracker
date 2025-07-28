@@ -1,24 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Drink } from '../types';
+import { Drink, ProductInfo } from '../types';
 import Quagga from 'quagga';
+import systembolagetService from '../utils/systembolagetService';
 
 interface BarcodeScannerProps {
   onDrinkFound: (drink: Drink) => void;
   onCancel: () => void;
 }
 
-interface ProductInfo {
-  name: string;
-  brand?: string;
-  volume?: number;
-  alcoholPercentage?: number;
-  type: Drink['type'];
-}
-
 export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, onCancel }) => {
   const [barcode, setBarcode] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isScanning, setIsScanning] = useState(false);
+  const [activeTab, setActiveTab] = useState<'barcode' | 'search'>('barcode');
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
+  const [searchResults, setSearchResults] = useState<ProductInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isQuaggaInitialized, setIsQuaggaInitialized] = useState(false);
@@ -39,17 +35,38 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
   };
 
   const searchProduct = async (barcode: string): Promise<ProductInfo | null> => {
-    // Simulera API-anrop
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsLoading(true);
     
-    // Först kolla i vår lokala databas
-    if (productDatabase[barcode]) {
-      return productDatabase[barcode];
-    }
+    try {
+      // 1. First check local product database
+      if (productDatabase[barcode]) {
+        return productDatabase[barcode];
+      }
 
-    // Om inte hittat lokalt, sök i Open Food Facts API
-    const apiResponse = await searchOpenFoodFacts(barcode);
-    return apiResponse;
+      // 2. Search in Systembolaget data by product number or EAN
+      console.log('Searching Systembolaget for:', barcode);
+      const systembolagetResult = await systembolagetService.searchByEAN(barcode);
+      if (systembolagetResult) {
+        console.log('Found in Systembolaget:', systembolagetResult.product.productNameBold);
+        return systembolagetService.convertToProductInfo(systembolagetResult.product);
+      }
+
+      // 3. If not found by EAN, try text search in Systembolaget (in case barcode matches name/number)
+      const textResults = await systembolagetService.searchByText(barcode);
+      if (textResults.length > 0 && textResults[0].confidence > 0.7) {
+        console.log('Found in Systembolaget by text search:', textResults[0].product.productNameBold);
+        return systembolagetService.convertToProductInfo(textResults[0].product);
+      }
+
+      // 4. Finally, try Open Food Facts API as fallback
+      console.log('Searching Open Food Facts for:', barcode);
+      const apiResponse = await searchOpenFoodFacts(barcode);
+      return apiResponse;
+      
+    } catch (error) {
+      console.error('Error searching for product:', error);
+      return null;
+    }
   };
 
   const searchOpenFoodFacts = async (barcode: string): Promise<ProductInfo | null> => {
@@ -174,19 +191,54 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
 
     setIsLoading(true);
     setError('');
+    setProductInfo(null);
     
     try {
       const product = await searchProduct(barcode);
       if (product) {
         setProductInfo(product);
       } else {
-        setError('Produkt hittades inte. Kontrollera streckkoden eller lägg till manuellt.');
+        setError('Produkt hittades inte. Kontrollera streckkoden eller prova textsökning.');
       }
     } catch (err) {
       setError('Ett fel uppstod vid sökning av produkt.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleTextSearch = async (query: string) => {
+    if (!query || query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const results = await systembolagetService.searchByText(query);
+      const productInfos = results.map(result => 
+        systembolagetService.convertToProductInfo(result.product)
+      );
+      setSearchResults(productInfos);
+    } catch (err) {
+      setError('Ett fel uppstod vid textsökning.');
+      setSearchResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    // Debounce search
+    clearTimeout((window as any).searchTimeout);
+    (window as any).searchTimeout = setTimeout(() => {
+      handleTextSearch(query);
+    }, 300);
   };
 
   const handleAddDrink = () => {
@@ -337,21 +389,73 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
       <div className="scanner-tabs">
         <button 
           type="button" 
-          className={`tab-btn ${!isScanning ? 'active' : ''}`}
-          onClick={() => setIsScanning(false)}
+          className={`tab-btn ${activeTab === 'barcode' && !isScanning ? 'active' : ''}`}
+          onClick={() => { setActiveTab('barcode'); setIsScanning(false); }}
         >
-          Manuell inmatning
+          Streckkod
+        </button>
+        <button 
+          type="button" 
+          className={`tab-btn ${activeTab === 'search' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('search'); setIsScanning(false); }}
+        >
+          Sök produkt
         </button>
         <button 
           type="button" 
           className={`tab-btn ${isScanning ? 'active' : ''}`}
-          onClick={() => setIsScanning(true)}
+          onClick={() => { setActiveTab('barcode'); setIsScanning(true); }}
         >
           Kamera
         </button>
       </div>
 
-      {!isScanning ? (
+      {activeTab === 'search' ? (
+        <div className="search-input">
+          <div className="form-group">
+            <label htmlFor="search">Sök efter dryck</label>
+            <input
+              id="search"
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchQueryChange}
+              placeholder="Skriv namn på dryck, producent eller produktnummer..."
+              disabled={isLoading}
+            />
+          </div>
+          
+          {isLoading && (
+            <div className="loading-spinner">
+              <span className="spinner"></span>
+              Söker i Systembolagets sortiment...
+            </div>
+          )}
+          
+          {searchResults.length > 0 && (
+            <div className="search-results">
+              <h4>Sökresultat ({searchResults.length})</h4>
+              <div className="results-list">
+                {searchResults.map((product, index) => (
+                  <div key={index} className="result-item" onClick={() => setProductInfo(product)}>
+                    {product.image && (
+                      <img src={product.image} alt={product.name} className="result-image" />
+                    )}
+                    <div className="result-info">
+                      <div className="result-name">{product.name}</div>
+                      <div className="result-details">
+                        {product.brand && <span>{product.brand} • </span>}
+                        <span>{product.volume}cl • {product.alcoholPercentage}%</span>
+                        {product.price && <span> • {product.price}kr</span>}
+                      </div>
+                      {product.country && <div className="result-country">{product.country}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : !isScanning ? (
         <div className="manual-input">
           <form onSubmit={handleBarcodeSubmit}>
             <div className="form-group">
@@ -361,10 +465,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
                 type="text"
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
-                placeholder="Ange 13-siffrig streckkod"
-                maxLength={13}
-                pattern="[0-9]{13}"
-                required
+                placeholder="Ange 13-siffrig streckkod eller produktnummer"
                 disabled={isLoading}
               />
             </div>
@@ -372,7 +473,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
               {isLoading ? (
                 <span className="loading-spinner">
                   <span className="spinner"></span>
-                  Söker i Open Food Facts...
+                  Söker produkt...
                 </span>
               ) : (
                 'Sök produkt'
@@ -417,12 +518,34 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
       {productInfo && (
         <div className="product-info">
           <h4>Produkt hittad!</h4>
+          {productInfo.image && (
+            <div className="product-image">
+              <img src={productInfo.image} alt={productInfo.name} />
+            </div>
+          )}
           <div className="product-details">
             <p><strong>Namn:</strong> {productInfo.name}</p>
-            {productInfo.brand && <p><strong>Märke:</strong> {productInfo.brand}</p>}
+            {productInfo.brand && <p><strong>Producent:</strong> {productInfo.brand}</p>}
             <p><strong>Volym:</strong> {productInfo.volume}cl</p>
             <p><strong>Alkoholhalt:</strong> {productInfo.alcoholPercentage}%</p>
             <p><strong>Typ:</strong> {productInfo.type}</p>
+            {productInfo.price && <p><strong>Pris:</strong> {productInfo.price}kr</p>}
+            {productInfo.country && <p><strong>Land:</strong> {productInfo.country}</p>}
+            {productInfo.productNumber && <p><strong>Artikelnummer:</strong> {productInfo.productNumber}</p>}
+            {productInfo.systembolagetProduct && (
+              <>
+                <p><strong>Kategori:</strong> {productInfo.systembolagetProduct.customCategoryTitle}</p>
+                {productInfo.systembolagetProduct.vintage && (
+                  <p><strong>Årgång:</strong> {productInfo.systembolagetProduct.vintage}</p>
+                )}
+                {productInfo.systembolagetProduct.grapes.length > 0 && (
+                  <p><strong>Druvor:</strong> {productInfo.systembolagetProduct.grapes.join(', ')}</p>
+                )}
+                {productInfo.systembolagetProduct.taste && (
+                  <p><strong>Smak:</strong> {productInfo.systembolagetProduct.taste}</p>
+                )}
+              </>
+            )}
           </div>
           <button type="button" className="add-drink-btn" onClick={handleAddDrink}>
             Lägg till dryck
