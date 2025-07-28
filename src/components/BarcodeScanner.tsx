@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Drink } from '../types';
+import Quagga from 'quagga';
 
 interface BarcodeScannerProps {
   onDrinkFound: (drink: Drink) => void;
@@ -20,8 +21,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLDivElement>(null);
 
   // Mock product database - i verkligheten skulle detta vara en riktig databas eller API
   const productDatabase: Record<string, ProductInfo> = {
@@ -203,29 +203,91 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
     onDrinkFound(drink);
   };
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsScanning(true);
+  const startCamera = () => {
+    if (!videoRef.current) return;
+
+    Quagga.init({
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: videoRef.current,
+        constraints: {
+          width: 640,
+          height: 480,
+          facingMode: "environment"
+        },
+      },
+      locator: {
+        patchSize: "medium",
+        halfSample: true
+      },
+      numOfWorkers: 2,
+      frequency: 10,
+      decoder: {
+        readers: [
+          "ean_reader",
+          "ean_8_reader",
+          "code_128_reader",
+          "code_39_reader",
+          "code_39_vin_reader",
+          "codabar_reader",
+          "upc_reader",
+          "upc_e_reader"
+        ]
+      },
+      locate: true
+    }, (err) => {
+      if (err) {
+        setError('Kunde inte starta kameran. Kontrollera behörigheter.');
+        console.error('Quagga init error:', err);
+        return;
       }
-    } catch (err) {
-      setError('Kunde inte komma åt kameran. Kontrollera behörigheter.');
-    }
+      
+      setIsScanning(true);
+      Quagga.start();
+    });
+
+    // Lyssnare för när streckkod hittas
+    Quagga.onDetected((result) => {
+      const code = result.codeResult.code;
+      setBarcode(code);
+      
+      // Stoppa scanning och sök produkt
+      Quagga.stop();
+      setIsScanning(false);
+      
+      // Automatiskt sök produkt
+      handleBarcodeSearch(code);
+    });
   };
 
   const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      setIsScanning(false);
+    Quagga.stop();
+    setIsScanning(false);
+  };
+
+  const handleBarcodeSearch = async (code: string) => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const product = await searchProduct(code);
+      if (product) {
+        setProductInfo(product);
+      } else {
+        setError('Produkt hittades inte. Kontrollera streckkoden eller lägg till manuellt.');
+      }
+    } catch (err) {
+      setError('Ett fel uppstod vid sökning av produkt.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     return () => {
-      stopCamera();
+      Quagga.stop();
+      Quagga.offDetected(() => {});
     };
   }, []);
 
@@ -287,24 +349,23 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
       ) : (
         <div className="camera-section">
           <div className="camera-container">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="camera-video"
-            />
-            <canvas ref={canvasRef} className="camera-canvas" />
+            <div ref={videoRef} className="camera-video"></div>
             <div className="scan-overlay">
               <div className="scan-frame"></div>
             </div>
           </div>
-          <button type="button" className="camera-btn" onClick={startCamera}>
-            Starta kamera
-          </button>
-          <button type="button" className="camera-btn" onClick={stopCamera}>
-            Stoppa kamera
-          </button>
+          <div className="camera-controls">
+            <button type="button" className="camera-btn" onClick={startCamera}>
+              📷 Starta kamera
+            </button>
+            <button type="button" className="camera-btn" onClick={stopCamera}>
+              ⏹️ Stoppa kamera
+            </button>
+          </div>
+          <div className="camera-instructions">
+            <p>📱 Rikta kameran mot streckkoden på drycken</p>
+            <p>🎯 Håll kameran stilla för bästa resultat</p>
+          </div>
         </div>
       )}
 

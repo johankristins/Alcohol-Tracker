@@ -846,7 +846,7 @@ td {
 .camera-video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  position: relative;
 }
 
 .camera-canvas {
@@ -893,6 +893,24 @@ td {
 .camera-btn:hover {
   background: #5a6fd8;
   transform: translateY(-1px);
+}
+
+.camera-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.camera-instructions {
+  text-align: center;
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+
+.camera-instructions p {
+  margin-bottom: 0.5rem;
 }
 
 .error-message {
