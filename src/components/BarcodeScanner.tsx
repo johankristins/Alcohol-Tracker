@@ -21,6 +21,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isQuaggaInitialized, setIsQuaggaInitialized] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
 
   // Mock product database - i verkligheten skulle detta vara en riktig databas eller API
@@ -261,6 +262,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
         return;
       }
       
+      setIsQuaggaInitialized(true);
       setIsScanning(true);
       Quagga.start();
     });
@@ -272,8 +274,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
       setBarcode(code);
       
       // Stoppa scanning och sök produkt
-      Quagga.stop();
-      setIsScanning(false);
+      stopCamera();
       
       // Automatiskt sök produkt
       handleBarcodeSearch(code);
@@ -281,7 +282,15 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
   };
 
   const stopCamera = () => {
-    Quagga.stop();
+    try {
+      if (isQuaggaInitialized && Quagga) {
+        Quagga.stop();
+        Quagga.offDetected(() => {});
+      }
+    } catch (error) {
+      console.error('Error stopping Quagga:', error);
+    }
+    setIsQuaggaInitialized(false);
     setIsScanning(false);
   };
 
@@ -305,10 +314,16 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
 
   useEffect(() => {
     return () => {
-      Quagga.stop();
-      Quagga.offDetected(() => {});
+      try {
+        if (isQuaggaInitialized && Quagga) {
+          Quagga.stop();
+          Quagga.offDetected(() => {});
+        }
+      } catch (error) {
+        console.error('Error cleaning up Quagga:', error);
+      }
     };
-  }, []);
+  }, [isQuaggaInitialized]);
 
   return (
     <div className="barcode-scanner">
