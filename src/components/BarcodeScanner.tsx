@@ -206,23 +206,34 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
   const startCamera = () => {
     if (!videoRef.current) return;
 
+    // Kontrollera om vi är på HTTPS (krävs för kamera på desktop)
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      setError('Kamera kräver HTTPS för att fungera på desktop. Använd manuell inmatning istället.');
+      return;
+    }
+
+    // Detektera om vi är på mobil eller desktop
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Försök med Quagga först
     Quagga.init({
       inputStream: {
         name: "Live",
         type: "LiveStream",
         target: videoRef.current,
         constraints: {
-          width: 640,
-          height: 480,
-          facingMode: "environment"
+          width: isMobile ? 640 : 1280,
+          height: isMobile ? 480 : 720,
+          facingMode: isMobile ? "environment" : "user", // Använd framkamera på desktop
+          aspectRatio: { min: 1, max: 2 }
         },
       },
       locator: {
         patchSize: "medium",
         halfSample: true
       },
-      numOfWorkers: 2,
-      frequency: 10,
+      numOfWorkers: isMobile ? 2 : 4, // Fler workers på desktop
+      frequency: isMobile ? 10 : 5, // Lägre frekvens på desktop för bättre prestanda
       decoder: {
         readers: [
           "ean_reader",
@@ -238,8 +249,15 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
       locate: true
     }, (err) => {
       if (err) {
-        setError('Kunde inte starta kameran. Kontrollera behörigheter.');
         console.error('Quagga init error:', err);
+        
+        // Om Quagga misslyckas, försök med enkel kamera
+        if (isMobile) {
+          setError('Kunde inte starta kameran. Använd manuell inmatning istället.');
+        } else {
+          // På desktop, visa instruktioner för manuell inmatning
+          setError('Kamera fungerar bäst på mobil. Använd manuell inmatning på desktop.');
+        }
         return;
       }
       
@@ -250,6 +268,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
     // Lyssnare för när streckkod hittas
     Quagga.onDetected((result) => {
       const code = result.codeResult.code;
+      console.log('Barcode detected:', code);
       setBarcode(code);
       
       // Stoppa scanning och sök produkt
@@ -365,6 +384,11 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
           <div className="camera-instructions">
             <p>📱 Rikta kameran mot streckkoden på drycken</p>
             <p>🎯 Håll kameran stilla för bästa resultat</p>
+            {!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && (
+              <div className="desktop-notice">
+                <p>💻 <strong>Desktop-tips:</strong> Kamera fungerar bäst på mobil. Använd manuell inmatning för snabbare resultat.</p>
+              </div>
+            )}
           </div>
         </div>
       )}

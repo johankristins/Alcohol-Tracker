@@ -913,6 +913,20 @@ td {
   margin-bottom: 0.5rem;
 }
 
+.desktop-notice {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 1rem;
+}
+
+.desktop-notice p {
+  color: #856404;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
 .error-message {
   background: #f8d7da;
   color: #721c24;

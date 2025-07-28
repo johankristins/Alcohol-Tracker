@@ -8,6 +8,7 @@ declare module 'quagga' {
         width?: number;
         height?: number;
         facingMode?: string;
+        aspectRatio?: { min: number; max: number };
       };
     };
     locator: {
