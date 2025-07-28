@@ -46,27 +46,125 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
       return productDatabase[barcode];
     }
 
-    // Om inte hittat lokalt, simulera extern API-sökning
-    // I verkligheten skulle du här anropa ett riktigt API som t.ex. Open Food Facts
-    const mockApiResponse = await mockExternalApi(barcode);
-    return mockApiResponse;
+    // Om inte hittat lokalt, sök i Open Food Facts API
+    const apiResponse = await searchOpenFoodFacts(barcode);
+    return apiResponse;
   };
 
-  const mockExternalApi = async (barcode: string): Promise<ProductInfo | null> => {
-    // Simulera extern API-sökning
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Simulera att vissa streckkoder ger resultat
-    if (barcode.startsWith('7310865')) {
+  const searchOpenFoodFacts = async (barcode: string): Promise<ProductInfo | null> => {
+    try {
+      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      
+      if (!response.ok) {
+        throw new Error('API request failed');
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 0 || !data.product) {
+        return null;
+      }
+      
+      const product = data.product;
+      
+      // Extrahera produktinformation
+      const name = product.product_name || product.product_name_en || product.generic_name || 'Okänd produkt';
+      const brand = product.brands || product.brand_owner;
+      
+      // Hitta alkoholhalt
+      let alcoholPercentage = 0;
+      if (product.nutriments?.alcohol_100g) {
+        alcoholPercentage = product.nutriments.alcohol_100g;
+      } else if (product.nutriments?.alcohol) {
+        alcoholPercentage = product.nutriments.alcohol;
+      }
+      
+      // Hitta volym
+      let volume = 0;
+      if (product.quantity) {
+        // Försök extrahera volym från quantity (t.ex. "330 ml" -> 33cl)
+        const quantityMatch = product.quantity.match(/(\d+)\s*(ml|cl|l)/i);
+        if (quantityMatch) {
+          const value = parseInt(quantityMatch[1]);
+          const unit = quantityMatch[2].toLowerCase();
+          if (unit === 'ml') {
+            volume = value / 10; // Konvertera till cl
+          } else if (unit === 'cl') {
+            volume = value;
+          } else if (unit === 'l') {
+            volume = value * 100; // Konvertera till cl
+          }
+        }
+      }
+      
+      // Bestäm dryckestyp baserat på kategorier och namn
+      let type: Drink['type'] = 'other';
+      const categories = product.categories_tags || [];
+      const productName = name.toLowerCase();
+      
+      if (categories.some((cat: string) => cat.includes('beers')) || 
+          productName.includes('öl') || productName.includes('beer') ||
+          productName.includes('lager') || productName.includes('pilsner')) {
+        type = 'beer';
+      } else if (categories.some((cat: string) => cat.includes('wines')) || 
+                 productName.includes('vin') || productName.includes('wine') ||
+                 productName.includes('chardonnay') || productName.includes('cabernet')) {
+        type = 'wine';
+      } else if (categories.some((cat: string) => cat.includes('spirits')) || 
+                 productName.includes('vodka') || productName.includes('whisky') ||
+                 productName.includes('gin') || productName.includes('rum') ||
+                 productName.includes('sprit')) {
+        type = 'spirit';
+      } else if (productName.includes('cocktail') || productName.includes('drink')) {
+        type = 'cocktail';
+      }
+      
+      // Om vi inte hittade alkoholhalt, försök med standardvärden baserat på typ
+      if (alcoholPercentage === 0) {
+        switch (type) {
+          case 'beer':
+            alcoholPercentage = 5.0;
+            break;
+          case 'wine':
+            alcoholPercentage = 12.0;
+            break;
+          case 'spirit':
+            alcoholPercentage = 40.0;
+            break;
+          default:
+            alcoholPercentage = 5.0;
+        }
+      }
+      
+      // Om vi inte hittade volym, använd standardvärden
+      if (volume === 0) {
+        switch (type) {
+          case 'beer':
+            volume = 33;
+            break;
+          case 'wine':
+            volume = 75;
+            break;
+          case 'spirit':
+            volume = 70;
+            break;
+          default:
+            volume = 33;
+        }
+      }
+      
       return {
-        name: `Produkt ${barcode.slice(-4)}`,
-        volume: 33,
-        alcoholPercentage: 5.0,
-        type: 'beer'
+        name,
+        brand,
+        volume,
+        alcoholPercentage,
+        type
       };
+      
+    } catch (error) {
+      console.error('Error fetching from Open Food Facts:', error);
+      return null;
     }
-    
-    return null;
   };
 
   const handleBarcodeSubmit = async (e: React.FormEvent) => {
@@ -171,10 +269,18 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDrinkFound, on
                 maxLength={13}
                 pattern="[0-9]{13}"
                 required
+                disabled={isLoading}
               />
             </div>
             <button type="submit" className="submit-btn" disabled={isLoading}>
-              {isLoading ? 'Söker...' : 'Sök produkt'}
+              {isLoading ? (
+                <span className="loading-spinner">
+                  <span className="spinner"></span>
+                  Söker i Open Food Facts...
+                </span>
+              ) : (
+                'Sök produkt'
+              )}
             </button>
           </form>
         </div>
