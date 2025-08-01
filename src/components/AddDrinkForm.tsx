@@ -32,6 +32,8 @@ export const AddDrinkForm: React.FC<AddDrinkFormProps> = ({ onAddDrink }) => {
   const [notes, setNotes] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [useCustomDate, setUseCustomDate] = useState(false);
+  const [customDate, setCustomDate] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +45,15 @@ export const AddDrinkForm: React.FC<AddDrinkFormProps> = ({ onAddDrink }) => {
 
     const drink = createDrink(name, type, parseFloat(volume), parseFloat(alcoholPercentage));
     
+    // Use custom date if provided, otherwise use current time
+    const timestamp = useCustomDate && customDate 
+      ? new Date(customDate + 'T' + new Date().toTimeString().slice(0, 8)) // Keep current time, use custom date
+      : new Date();
+    
     const entry: DrinkEntry = {
       id: '', // Will be set by backend
       drink,
-      timestamp: new Date(),
+      timestamp,
       notes: notes.trim() || undefined
     };
 
@@ -57,6 +64,8 @@ export const AddDrinkForm: React.FC<AddDrinkFormProps> = ({ onAddDrink }) => {
     setVolume('');
     setAlcoholPercentage('');
     setNotes('');
+    setUseCustomDate(false);
+    setCustomDate('');
     setShowCustomForm(false);
   };
 
@@ -203,6 +212,30 @@ export const AddDrinkForm: React.FC<AddDrinkFormProps> = ({ onAddDrink }) => {
               placeholder="Lägg till anteckningar..."
               rows={2}
             />
+          </div>
+
+          <div className="form-group">
+            <div className="checkbox-group">
+              <input
+                id="useCustomDate"
+                type="checkbox"
+                checked={useCustomDate}
+                onChange={(e) => setUseCustomDate(e.target.checked)}
+              />
+              <label htmlFor="useCustomDate">Ange datum manuellt</label>
+            </div>
+            {useCustomDate && (
+              <div className="date-input-group">
+                <label htmlFor="customDate">Datum</label>
+                <input
+                  id="customDate"
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]} // Prevent future dates
+                />
+              </div>
+            )}
           </div>
 
           <button type="submit" className="submit-btn">
